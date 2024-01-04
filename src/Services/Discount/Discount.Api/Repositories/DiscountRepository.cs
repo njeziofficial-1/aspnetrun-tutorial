@@ -11,8 +11,9 @@ public class DiscountRepository : IDiscountRepository
 
     public DiscountRepository(IConfiguration configuration)
     {
-        _connection = new(configuration.GetValue<string>("ConnectionString:ConnectionString"));
-        _connection.Open();
+        _connection = new(configuration.GetValue<string>("ConnectionStrings:ConnectionString"));
+        if (_connection.State != ConnectionState.Open)
+            _connection.Open();
     }
 
     public async Task<bool> CreateDiscount(Coupon coupon)
@@ -25,6 +26,23 @@ public class DiscountRepository : IDiscountRepository
     public Task<bool> DeleteDiscount(string productName)
     {
         throw new NotImplementedException();
+    }
+
+    public async Task<IEnumerable<Coupon>> GetDiscounts()
+    {
+        using var connection = _connection;
+
+        var coupons = await connection.QueryAsync<Coupon>
+            ("SELECT * FROM Coupon");
+        return coupons ?? new List<Coupon>
+        {
+            new()
+            {
+                ProductName = "No Discount",
+                Amount = 0,
+                Description = "No Discount Desc"
+            }
+        };
     }
 
     public async Task<Coupon> GetDiscount(string productName)
